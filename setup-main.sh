@@ -184,6 +184,8 @@ EOF
 #=================== Install Password SSH =====================
 wget -O /etc/pam.d/common-password "${REPO}files/password"
 chmod +x /etc/pam.d/common-password
+
+sudo apt install -y keyboard-configuration
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
 debconf-set-selections <<<"keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout"
 debconf-set-selections <<<"keyboard-configuration keyboard-configuration/compose select No compose key"
@@ -220,14 +222,15 @@ SysVStartPriority=99
 WantedBy=multi-user.target
 END
 
-cat > /etc/rc.local <<-END
+cat > /etc/rc.local <<- 'END'
+#!/bin/bash
+echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
 exit 0
 END
 chmod +x /etc/rc.local
 systemctl enable rc-local
 systemctl start rc-local.service
-echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
-sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
+
 ln -fs /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
 sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
 
@@ -260,12 +263,13 @@ systemctl restart ssh
 
 #=================== Install Dropbear =====================
 apt-get update -y
-apt-get install dropbear -y >/dev/null 2>&1
-wget -q -O /etc/default/dropbear "${REPO}cfg_conf_js/dropbear.conf" >/dev/null 2>&1
-chmod +x /etc/default/dropbear
-/etc/init.d/dropbear restart
-/etc/init.d/dropbear status
+apt-get install -y dropbear >/dev/null 2>&1
 
+wget -q -O /etc/default/dropbear "${REPO}cfg_conf_js/dropbear.conf"
+chmod +x /etc/default/dropbear
+
+systemctl restart dropbear
+systemctl status dropbear --no-pager
 #=================== Install VNstat =====================
 apt -y install vnstat > /dev/null 2>&1
 /etc/init.d/vnstat restart
@@ -289,6 +293,7 @@ rm -rf /root/vnstat-2.6
 wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
 /etc/init.d/openvpn restart
 
+############### TANDA
 #=================== Install Wondershaper =====================
 apt install rclone -y
 printf "q\n" | rclone config
