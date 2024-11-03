@@ -43,29 +43,34 @@ touch /var/log/xray/access.log
 touch /var/log/xray/error.log
 mkdir -p /var/lib/kyt >/dev/null 2>&1
 
-#=================== Setup timezone,iptables/install haproxy=====================
+#=================== Setup timezone, iptables, install haproxy =====================
 timedatectl set-timezone Asia/Jakarta
+
+# Preconfigure iptables-persistent for automatic save
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-sudo apt update -y
-apt-get install --no-install-recommends software-properties-common
-add-apt-repository ppa:vbernat/haproxy-2.0 -y
-apt-get -y install haproxy=2.0.\*
-elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-curl https://haproxy.debian.net/bernat.debian.org.gpg |
-gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-http://haproxy.debian.net buster-backports-1.8 main \
->/etc/apt/sources.list.d/haproxy.list
-sudo apt-get update
-apt-get -y install haproxy=1.8.\*
+apt install -y iptables-persistent
+
+# Get OS ID
+OS_ID=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
+OS_NAME=$(awk -F= '/^PRETTY_NAME=/{print $2}' /etc/os-release | tr -d '"')
+
+echo "Setup Dependencies for $OS_NAME"
+
+# Install HAProxy based on OS
+if [[ "$OS_ID" == "ubuntu" ]]; then
+    sudo apt update -y
+    sudo apt install -y --no-install-recommends software-properties-common
+    add-apt-repository ppa:vbernat/haproxy-2.6 -y
+    apt-get -y install haproxy=2.6.\*
+elif [[ "$OS_ID" == "debian" ]]; then
+    sudo apt update -y
+    sudo apt install -y haproxy
 else
-echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
-exit 1
+    echo -e "Your OS is not supported ($OS_NAME)"
+    exit 1
 fi
+
 
 #=================== Install Nginx =====================
 if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
