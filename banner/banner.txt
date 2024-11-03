@@ -1,0 +1,4 @@
+<p style="text-align:center">
+</span><span style="color: #0055ff">┌───────────────┐<br>
+</span><span style="color: #00ff00">  SAN STORE VPN  <br>
+</span><span style="color: #0055ff">└───────────────┘<br>
