@@ -73,16 +73,26 @@ fi
 
 
 #=================== Install Nginx =====================
-if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-sudo apt-get install nginx -y
-elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-apt -y install nginx
+#=================== Install Nginx =====================
+# Get OS ID and Name
+OS_ID=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
+OS_NAME=$(awk -F= '/^PRETTY_NAME=/{print $2}' /etc/os-release | tr -d '"')
+
+echo "Installing Nginx on $OS_NAME"
+
+if [[ "$OS_ID" == "ubuntu" ]]; then
+    sudo apt-get install -y nginx
+elif [[ "$OS_ID" == "debian" ]]; then
+    sudo apt install -y nginx
 else
-echo -e " Your OS Is Not Supported ( ${YELLOW}$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')${FONT} )"
+    echo -e "Your OS is not supported ($OS_NAME)"
 fi
 
+
 #=================== Install Package tambahan =====================
-apt install zip pwgen openssl netcat socat cron bash-completion -y
+apt update
+apt install -y netcat-openbsd
+apt install -y zip pwgen openssl netcat-openbsd socat cron bash-completion
 apt install figlet -y
 apt update -y
 apt upgrade -y
