@@ -71,8 +71,6 @@ else
     exit 1
 fi
 
-
-#=================== Install Nginx =====================
 #=================== Install Nginx =====================
 # Get OS ID and Name
 OS_ID=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
@@ -155,6 +153,9 @@ IPVS=$(cat /etc/xray/ipvps)
 curl -s ipinfo.io/city >>/etc/xray/city
 curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
 wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg" >/dev/null 2>&1
+CORES=$(nproc)
+sed -i "s/bind-process .*/bind-process 1-$CORES/" /etc/haproxy/haproxy.cfg
+
 wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf" >/dev/null 2>&1
 sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
 sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
@@ -324,23 +325,33 @@ chown -R www-data:www-data /etc/msmtprc
 wget -q -O /etc/ipserver "${REPO}files/ipserver" && bash /etc/ipserver
 
 #=================== Install GOTOP & SWAP =====================
+# Mengambil versi terbaru dari gotop
 gotop_latest="$(curl -s https://api.github.com/repos/xxxserxxx/gotop/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)"
 gotop_link="https://github.com/xxxserxxx/gotop/releases/download/v$gotop_latest/gotop_v"$gotop_latest"_linux_amd64.deb"
 curl -sL "$gotop_link" -o /tmp/gotop.deb
 dpkg -i /tmp/gotop.deb >/dev/null 2>&1
+
+# Membuat swap file
 dd if=/dev/zero of=/swapfile bs=1024 count=1048576
 mkswap /swapfile
 chown root:root /swapfile
-chmod 0600 /swapfile >/dev/null 2>&1
-swapon /swapfile >/dev/null 2>&1
+chmod 0600 /swapfile
+swapon /swapfile
 sed -i '$ i\/swapfile      swap swap   defaults    0 0' /etc/fstab
-chronyd -q 'server 0.id.pool.ntp.org iburst'
-wget ${REPO}files/bbr.sh &&  chmod +x bbr.sh && ./bbr.sh
 
-systemctl enable chronyd
-systemctl restart chronyd
+# Sinkronisasi waktu
+chronyc -a 'burst 4/4'
+chronyc -a 'server 0.id.pool.ntp.org iburst'
+chronyc -a makestep
+
+# Mengunduh dan menjalankan skrip BBR (misalnya untuk optimisasi jaringan)
+wget ${REPO}files/bbr.sh && chmod +x bbr.sh && ./bbr.sh
+
+# Mengaktifkan dan memulai layanan chrony
 systemctl enable chrony
 systemctl restart chrony
+
+# Verifikasi status sinkronisasi waktu
 chronyc sourcestats -v
 chronyc tracking -v
 
