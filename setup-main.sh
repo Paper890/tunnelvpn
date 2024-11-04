@@ -293,7 +293,6 @@ rm -rf /root/vnstat-2.6
 wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
 /etc/init.d/openvpn restart
 
-############### TANDA
 #=================== Install Wondershaper =====================
 apt install rclone -y
 printf "q\n" | rclone config
@@ -320,6 +319,7 @@ from oceantestdigital@gmail.com
 password jokerman77
 logfile ~/.msmtp.log
 EOF
+
 chown -R www-data:www-data /etc/msmtprc
 wget -q -O /etc/ipserver "${REPO}files/ipserver" && bash /etc/ipserver
 
@@ -343,6 +343,7 @@ systemctl enable chrony
 systemctl restart chrony
 chronyc sourcestats -v
 chronyc tracking -v
+
 #=================== Install Fail2ban =====================
 if [ -d '/usr/local/ddos' ]; then
 echo; echo; echo "Please un-install the previous version first"
